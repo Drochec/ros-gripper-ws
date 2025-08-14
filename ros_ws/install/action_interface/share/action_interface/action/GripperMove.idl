@@ -1,0 +1,18 @@
+// generated from rosidl_adapter/resource/action.idl.em
+// with input from action_interface/action/GripperMove.action
+// generated code does not contain a copyright notice
+
+
+module action_interface {
+  module action {
+    struct GripperMove_Goal {
+      int32 action;
+    };
+    struct GripperMove_Result {
+      boolean complete;
+    };
+    struct GripperMove_Feedback {
+      boolean running;
+    };
+  };
+};

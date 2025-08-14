@@ -1,0 +1,49 @@
+gnore all hidden files and folders
+.*
+# But allow specific hidden files if needed
+!.gitignore
+!.gitattributes
+
+# Ignore system & package management files
+.cache/
+.config/
+.local/
+.ssh/
+.bash_history
+.profile
+.bashrc
+.zshrc
+.python_history
+node_modules/
+
+# Ignore temporary or build artifacts
+*.swp
+*.tmp
+*.log
+*.pid
+*.sock
+*.pyc
+__pycache__/
+build/
+dist/
+*.o
+*.out
+*.class
+
+# Ignore backups
+*.bak
+*.old
+
+# Ignore large media or datasets (optional, remove if needed)
+*.zip
+*.tar
+*.tar.gz
+*.tgz
+*.rar
+*.7z
+*.mp4
+*.mp3
+*.wav
+*.iso
+
+# Allow everything else

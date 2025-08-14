@@ -1,0 +1,6 @@
+source;share/adc_readout/hook/pythonpath.ps1
+source;share/adc_readout/hook/pythonpath.dsv
+source;share/adc_readout/hook/pythonpath.sh
+source;share/adc_readout/hook/ament_prefix_path.ps1
+source;share/adc_readout/hook/ament_prefix_path.dsv
+source;share/adc_readout/hook/ament_prefix_path.sh
