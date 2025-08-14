@@ -33,8 +33,8 @@ current_offset = ADC_RANGE/2
 angle_Vmin = 0.23
 angle_Vmax = 2.98
 
-CLOSED_POS = 0
-OPEN_POS = 170
+CLOSED_POS = 10
+OPEN_POS = 115
 
 class adcNode(Node):
 

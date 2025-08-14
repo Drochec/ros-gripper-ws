@@ -25,8 +25,8 @@ OPEN = -2
 #Horni a spodni limit pozice pro otevreni/zavreni gripperu
 #Nechceme rozervat nastavec.... znova
 
-OPEN_ANGLE = 170
-CLOSED_ANGLE = 0
+OPEN_ANGLE = 115
+CLOSED_ANGLE = 10
 
 #Ridici Node pro ovladani gripperu
 #Topicy:
@@ -74,7 +74,7 @@ class controlNode(rclpy.node.Node):
         self.action_server = rclpy.action.ActionServer(self, GripperMove, 'gripper_move', self.gripper_move_action)
 
         self.get_logger().info("Control node started")
-        self.calibrate_sens()
+        self.move_servo(CLOSED_ANGLE)
 
     def publish_pos(self):
         msg = std_msgs.msg.Int32()
@@ -111,10 +111,10 @@ class controlNode(rclpy.node.Node):
 
         if (received_angle == CLOSED):
             received_angle = CLOSED_ANGLE
-            self.get_logger().info(received_angle)
+            self.get_logger().info(str(received_angle))
         elif (received_angle == OPEN):
             received_angle = OPEN_ANGLE
-            self.get_logger().info(received_angle)
+            self.get_logger().info(str(received_angle))
 
         self.reset_overload()
 
@@ -147,6 +147,9 @@ class controlNode(rclpy.node.Node):
     def reset_overload(self):
         self.overload_active = False
         self.overcurrent_start = None
+
+    def store_angle(self, angle_msg):
+        self.servo_angle = angle_msg.data
 
     #def read_sens(self, raw_data: std_msgs.msg.Float32MultiArray):
     #    current_raw = raw_data.data[0]
