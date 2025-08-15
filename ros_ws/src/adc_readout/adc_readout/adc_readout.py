@@ -22,6 +22,7 @@ I2C_BUS = smbus2.SMBus(5)
 ads1115 = ADS1015(i2c_dev=I2C_BUS)
 ads1115.set_mode("single")
 ads1115.set_programmable_gain(ADC_RANGE)
+ads1115.set_sample_rate(860)
 
 #Proudove cidlo
 
@@ -60,7 +61,7 @@ class adcNode(Node):
         self.max_angle = OPEN_ANGLE
         self.min_angle = CLOSED_ANGLE
 
-        self.timer = self.create_timer(0.05, self.publish_readings)
+        self.timer = self.create_timer(0.01, self.publish_readings)
         self.current_readout_publisher = self.create_publisher(std_msgs.msg.Float32, "adc_current", 10)
         self.angle_readout_publisher = self.create_publisher(std_msgs.msg.Int32, "adc_angle", 10)
         
@@ -78,9 +79,9 @@ class adcNode(Node):
 
         self.angle = (angle_raw - self.angle_Vmin) * (self.max_angle - self.min_angle) / (self.angle_Vmax - self.angle_Vmin) + self.min_angle
 
-        self.get_logger().info(str(current_raw))
-        self.get_logger().info(str(self.current_offset))
-        self.get_logger().info(str(self.sensitivity))
+        #self.get_logger().info(str(current_raw))
+        #self.get_logger().info(str(self.current_offset))
+        #self.get_logger().info(str(self.sensitivity))
 
         
 

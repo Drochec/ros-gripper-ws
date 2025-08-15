@@ -45,7 +45,7 @@ class controlNode(rclpy.node.Node):
 
         self.overcurrent_start = None
         self.overload_active = False
-        self.overcurrent_threshold = 0.6   # amps
+        self.overcurrent_threshold = 0.75   # amps
         self.overcurrent_duration = 0.1    # seconds
 
         self.samples = 100
@@ -56,7 +56,7 @@ class controlNode(rclpy.node.Node):
         
         self.set_angle = 0
         self.servo_angle = 0.0
-        self.stop_angle_offset = -30
+        self.stop_angle_offset = 0
 
         self.angle_Vmin = 0.23
         self.angle_Vmax = 2.98
