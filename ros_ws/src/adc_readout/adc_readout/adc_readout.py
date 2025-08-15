@@ -9,11 +9,13 @@ import smbus2
 from rclpy.action import ActionClient
 from action_interface.action import GripperMove
 
+import time
+
 #Parametry pro převod
 ADC_RANGE = 6.144
 
 ANGLE_CHANNEL = "in0/gnd"
-CURRENT_CHANNEL = "in2/gnd"
+CURRENT_CHANNEL = "in1/gnd"
 
 I2C_BUS = smbus2.SMBus(5)
 
@@ -33,8 +35,11 @@ current_offset = ADC_RANGE/2
 angle_Vmin = 0.23
 angle_Vmax = 2.98
 
-CLOSED_POS = 10
-OPEN_POS = 115
+CLOSED_ANGLE = 10
+OPEN_ANGLE = 100
+
+CLOSE = -1
+OPEN = -2
 
 class adcNode(Node):
 
@@ -42,66 +47,84 @@ class adcNode(Node):
     #current_offset = 0
     #angle = 0
 
-    def __init__(self,current_sens_sensitivity, current_calibration_samples, angle_Vmin, angle_Vmax):
+    def __init__(self,current_sens_sensitivity, current_calibration_samples):
         super().__init__("adc_readout")
 
         self.get_logger().info("Node started")
 
         self.sensitivity = current_sens_sensitivity
         self.samples = current_calibration_samples
-        self.angle_Vmin = angle_Vmin
-        self.angle_Vmax = angle_Vmax
+        self.angle_Vmin = 0.23
+        self.angle_Vmax = 2.98
 
-        self.calibrate_current_sens()
+        self.max_angle = OPEN_ANGLE
+        self.min_angle = CLOSED_ANGLE
 
         self.timer = self.create_timer(0.05, self.publish_readings)
-        self.current_readout_publisher = self.create_publisher(std_msgs.msg.Float32, "adc_current_raw", 10)
-        self.angle_readout_publisher = self.create_publisher(std_msgs.msg.Int32, "adc_angle_raw", 10)
+        self.current_readout_publisher = self.create_publisher(std_msgs.msg.Float32, "adc_current", 10)
+        self.angle_readout_publisher = self.create_publisher(std_msgs.msg.Int32, "adc_angle", 10)
         
         self.gripper_action_client = ActionClient(self, GripperMove, "gripper_move")
 
+        self.calibrate_current_sens()
+        self.calibrate_angle_sens()
+
     def read_values(self):
+
         current_raw = ads1115.get_voltage(CURRENT_CHANNEL)
         self.current = (current_raw - self.current_offset) / self.sensitivity
 
         angle_raw = ads1115.get_voltage(ANGLE_CHANNEL)
-        self.angle = (angle_raw - self.angle_Vmin) * 180 / (self.angle_Vmax - self.angle_Vmin)
 
-        #self.get_logger().info(str(current_raw))
-        #self.get_logger().info(str(self.current_offset))
-        #self.get_logger().info(str(self.sensitivity))
+        self.angle = (angle_raw - self.angle_Vmin) * (self.max_angle - self.min_angle) / (self.angle_Vmax - self.angle_Vmin) + self.min_angle
+
+        self.get_logger().info(str(current_raw))
+        self.get_logger().info(str(self.current_offset))
+        self.get_logger().info(str(self.sensitivity))
 
         
 
     def calibrate_current_sens(self):
+        self.get_logger().info("Calibrating current...")
         sum_current_raw = 0.0
         for i in range(self.samples):
             sum_current_raw += ads1115.get_voltage(CURRENT_CHANNEL)
         self.current_offset = sum_current_raw / self.samples
-        self.get_logger().info("Current calbritated - offset: {} A".format(self.current_offset))
+        self.get_logger().info("Current calbritated - offset: {} V".format(self.current_offset))
 
     def calibrate_angle_sens(self):
+        self.get_logger().info("Calibrating servo angle....")
         action_msg = GripperMove.Goal()
         action_msg.action = 0
 
-        self.gripper_action_client.send_goal(action_msg)
+        self.get_logger().info("Sending action message to servo")
+        self.gripper_action_client.send_goal_async(action_msg)
 
         self.gripper_action_client.wait_for_server()
 
+        time.sleep(0.5)
         sum_angle_raw = 0
         for i in range(self.samples):
             sum_angle_raw += ads1115.get_voltage(ANGLE_CHANNEL)
-        self.angle_Vmin = int(sum_angle_raw / self.samples)
+        self.angle_Vmin = sum_angle_raw / self.samples
+        self.get_logger().info("Min angle calibrated, value:{} V".format(self.angle_Vmin))
 
         action_msg.action = 180
-        self.gripper_action_client.send_goal(action_msg)
+        self.get_logger().info("Sending action message to servo")
+        self.gripper_action_client.send_goal_async(action_msg)
 
         self.gripper_action_client.wait_for_server()
 
+        time.sleep(0.5)
         sum_angle_raw = 0
         for i in range(self.samples):
             sum_angle_raw += ads1115.get_voltage(ANGLE_CHANNEL)
-        self.angle_Vmax = int(sum_angle_raw / self.samples)
+        self.angle_Vmax = sum_angle_raw / self.samples
+        self.get_logger().info("Max angle calibrated, value:{} V".format(self.angle_Vmax))
+
+        action_msg.action = 0
+        self.get_logger().info("Returning to default position")
+        self.gripper_action_client.send_goal_async(action_msg)
 
 
     def publish_readings(self):
@@ -130,7 +153,7 @@ class adcNode(Node):
 def main(args=None):
 
     rclpy.init(args=args)
-    node = adcNode(current_sens_sensitivity=SENSITIVITY, current_calibration_samples=SAMPLES, angle_Vmin=angle_Vmin, angle_Vmax=angle_Vmax)
+    node = adcNode(current_sens_sensitivity=SENSITIVITY, current_calibration_samples=SAMPLES)
     rclpy.spin(node)
     rclpy.shutdown()
 

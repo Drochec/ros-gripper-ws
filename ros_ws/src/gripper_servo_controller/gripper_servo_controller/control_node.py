@@ -25,7 +25,7 @@ OPEN = -2
 #Horni a spodni limit pozice pro otevreni/zavreni gripperu
 #Nechceme rozervat nastavec.... znova
 
-OPEN_ANGLE = 115
+OPEN_ANGLE = 100
 CLOSED_ANGLE = 10
 
 #Ridici Node pro ovladani gripperu
@@ -45,8 +45,8 @@ class controlNode(rclpy.node.Node):
 
         self.overcurrent_start = None
         self.overload_active = False
-        self.overcurrent_threshold = 0.5   # amps
-        self.overcurrent_duration = 0.05    # seconds
+        self.overcurrent_threshold = 0.6   # amps
+        self.overcurrent_duration = 0.1    # seconds
 
         self.samples = 100
 
@@ -56,7 +56,7 @@ class controlNode(rclpy.node.Node):
         
         self.set_angle = 0
         self.servo_angle = 0.0
-        self.stop_angle_offset = 0
+        self.stop_angle_offset = -30
 
         self.angle_Vmin = 0.23
         self.angle_Vmax = 2.98
@@ -66,8 +66,9 @@ class controlNode(rclpy.node.Node):
         self.cmd_pos_pub = self.create_publisher(std_msgs.msg.Int32, "cur_pos", 5)
         self.cmd_pos_sub = self.create_subscription(std_msgs.msg.Int32, "cmd_pos", self.receive_pos, 5) #Pri poslani dat na topic posune na zadanou pozici
 
-        self.current_sub = self.create_subscription(std_msgs.msg.Float32, "adc_current", self.gripper_watchdog, 10)
         self.angle_sub = self.create_subscription(std_msgs.msg.Int32, "adc_angle", self.store_angle, 10)
+        self.current_sub = self.create_subscription(std_msgs.msg.Float32, "adc_current", self.gripper_watchdog, 10)
+
 
         #self.adc_sub = self.create_subscription(std_msgs.msg.Float32MultiArray, "adc_data", self.read_sens, 10)
 
@@ -136,7 +137,7 @@ class controlNode(rclpy.node.Node):
                     self.get_logger().warn(
                         f'Prolonged overload ({current_msg.data:.3f} A)! Stopping'
                     )
-                    self.move_servo(self.servo_angle - self.stop_angle_offset)
+                    self.move_servo(self.servo_angle + self.stop_angle_offset)
                     self.overload_active = True  # latch so it won’t trigger again
             else:
                 self.overcurrent_start = None
