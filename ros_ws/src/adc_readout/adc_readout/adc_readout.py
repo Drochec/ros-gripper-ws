@@ -1,13 +1,12 @@
 import rclpy
 from rclpy.node import Node
+from rclpy.action import ActionClient
+from action_interface.action import GripperMove
 
 import std_msgs.msg
 
 from ads1015 import ADS1015
 import smbus2
-
-from rclpy.action import ActionClient
-from action_interface.action import GripperMove
 
 import time
 
@@ -17,8 +16,9 @@ ADC_RANGE = 6.144
 ANGLE_CHANNEL = "in0/gnd"
 CURRENT_CHANNEL = "in1/gnd"
 
-I2C_BUS = smbus2.SMBus(5)
+I2C_BUS = smbus2.SMBus(5) #Zde nastavit cislo rozhrani
 
+#Nastaveni proudoveho cidla - viz: https://github.com/pimoroni/ads1015-python
 ads1115 = ADS1015(i2c_dev=I2C_BUS)
 ads1115.set_mode("single")
 ads1115.set_programmable_gain(ADC_RANGE)
@@ -26,19 +26,20 @@ ads1115.set_sample_rate(860)
 
 #Proudove cidlo
 
-SENSITIVITY = 0.185
-SAMPLES = 100
+SENSITIVITY = 0.185 #Podle rozsahu cidla [V/A]
+SAMPLES = 100 #Pocet vzorku pri kalibraci
 
 #current_offset = 0.347
-current_offset = ADC_RANGE/2
+current_offset = ADC_RANGE/2 #Vychozi klidova hodnota, presnejsi zjistena kalibraci
 
-#Uhel okrajove hodnoty
-angle_Vmin = 0.23
+#Vychozi okrajove hodnoty uhlu, presnejsi ziskane kalibraci
+angle_Vmin = 0.23 
 angle_Vmax = 2.98
 
 CLOSED_ANGLE = 10
 OPEN_ANGLE = 100
 
+#Specialni pripady - vyuzito pro zasilani action zprav pro kalibraci
 CLOSE = -1
 OPEN = -2
 
@@ -48,13 +49,13 @@ class adcNode(Node):
     #current_offset = 0
     #angle = 0
 
-    def __init__(self,current_sens_sensitivity, current_calibration_samples):
+    def __init__(self):
         super().__init__("adc_readout")
 
         self.get_logger().info("Node started")
 
-        self.sensitivity = current_sens_sensitivity
-        self.samples = current_calibration_samples
+        self.sensitivity = SENSITIVITY 
+        self.samples = SAMPLES
         self.angle_Vmin = 0.23
         self.angle_Vmax = 2.98
 
@@ -87,13 +88,24 @@ class adcNode(Node):
 
     def calibrate_current_sens(self):
         self.get_logger().info("Calibrating current...")
+        
+        #Zmeri N vzorku a vypocita prumer 
         sum_current_raw = 0.0
         for i in range(self.samples):
             sum_current_raw += ads1115.get_voltage(CURRENT_CHANNEL)
         self.current_offset = sum_current_raw / self.samples
+
         self.get_logger().info("Current calbritated - offset: {} V".format(self.current_offset))
 
     def calibrate_angle_sens(self):
+        
+        #Kalibrace krajnich hodnot polohy (potenciometru) serva
+        #Pomoci actionu zasle na krajni hodnotu -> Zmeri N vzorku a vypocita prumer -> Ulozi hodnotu
+        #Opakuje druhou krajni hodnotu
+
+        #Pouziva 0 a 180, misto opravdovych krajnich metod, protoze se muzou menit
+        #Logika gripper controlleru si prekroceni mezi pohlida
+
         self.get_logger().info("Calibrating servo angle....")
         action_msg = GripperMove.Goal()
         action_msg.action = 0
@@ -103,7 +115,7 @@ class adcNode(Node):
 
         self.gripper_action_client.wait_for_server()
 
-        time.sleep(0.5)
+        time.sleep(0.5) #Zajisti ze servo je opravdu v krajni hodnote
         sum_angle_raw = 0
         for i in range(self.samples):
             sum_angle_raw += ads1115.get_voltage(ANGLE_CHANNEL)
@@ -154,7 +166,7 @@ class adcNode(Node):
 def main(args=None):
 
     rclpy.init(args=args)
-    node = adcNode(current_sens_sensitivity=SENSITIVITY, current_calibration_samples=SAMPLES)
+    node = adcNode()
     rclpy.spin(node)
     rclpy.shutdown()
 

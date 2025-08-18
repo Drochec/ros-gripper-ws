@@ -18,7 +18,7 @@ SERVO_FREQUENCY = 50
 
 servo = piservo.Servo(SERVO_SIGNAL_PIN, SERVO_MIN_POS, SERVO_MAX_POS, SERVO_MIN_PULSE, SERVO_MAX_PULSE, SERVO_FREQUENCY)
 
-#Specialni pripady pozice prijate pozice
+#Specialni pripady prijate pozice
 CLOSED = -1
 OPEN = -2
 
@@ -33,6 +33,8 @@ CLOSED_ANGLE = 10
 # - subscriber: cmd_pos - nastaveni pozice manualne
 # - listnener: act_pos - aktualni pozice gripperu
 
+#Action - GripperMove
+
 #Actions - Move - open/close
 
 class controlNode(rclpy.node.Node):
@@ -42,30 +44,30 @@ class controlNode(rclpy.node.Node):
 
         super().__init__("control_node")
         
-
+        #Nastaveni hodnot ochrany nadproudu
         self.overcurrent_start = None
         self.overload_active = False
         self.overcurrent_threshold = 0.75   # amps
         self.overcurrent_duration = 0.1    # seconds
 
-        self.samples = 100
 
-        self.current = 0.0
-        self.current_offset = 2.3
-        self.current_sensitivity = 0.185
+        #self.samples = 100 #Pocet vzorku, pouzite pri kalibraci
+
+        #Parametry proudoveho cidla 
+        #self.current = 0.0 #Aktualni prijata hodnota z ADC nody
+        #self.current_offset = 2.3 #Vychozi hodnota, presnejsi ziskana kalibraci
+        #self.current_sensitivity = 0.185 #Z datasheetu vyrobce [V/A]
         
-        self.set_angle = 0
-        self.servo_angle = 0.0
-        self.stop_angle_offset = 0
-
-        self.angle_Vmin = 0.23
-        self.angle_Vmax = 2.98
+        #self.set_angle = 0 #Nastaveny uhel - posila na signal pin serva
+        #self.servo_angle = 0.0 #Aktualni uhel - ziskany z ADC nody
+        #self.stop_angle_offset = 0 #Offset pri pocitani finalni polohy serva po zastaveni kvuli prepeti
 
 
         self.timer = self.create_timer(1.0, self.publish_pos) #Kazdou sekundu posle nastavenou pozici
-        self.cmd_pos_pub = self.create_publisher(std_msgs.msg.Int32, "cur_pos", 5)
+        self.cmd_pos_pub = self.create_publisher(std_msgs.msg.Int32, "cur_pos", 5) 
         self.cmd_pos_sub = self.create_subscription(std_msgs.msg.Int32, "cmd_pos", self.receive_pos, 5) #Pri poslani dat na topic posune na zadanou pozici
 
+        #Hodnoty z ADC
         self.angle_sub = self.create_subscription(std_msgs.msg.Int32, "adc_angle", self.store_angle, 10)
         self.current_sub = self.create_subscription(std_msgs.msg.Float32, "adc_current", self.gripper_watchdog, 10)
 
@@ -75,7 +77,7 @@ class controlNode(rclpy.node.Node):
         self.action_server = rclpy.action.ActionServer(self, GripperMove, 'gripper_move', self.gripper_move_action)
 
         self.get_logger().info("Control node started")
-        self.move_servo(CLOSED_ANGLE)
+        self.move_servo(CLOSED_ANGLE) #Nastavi vychozi hodnotu serva
 
     def publish_pos(self):
         msg = std_msgs.msg.Int32()
@@ -83,15 +85,18 @@ class controlNode(rclpy.node.Node):
         
         self.cmd_pos_pub.publish(msg)
     
-    def receive_pos(self, angle: std_msgs.msg.Int32):
+    def receive_pos(self, angle: std_msgs.msg.Int32): 
+        #Nastaveni pozice pomoci zpravy na topic
+
         self.get_logger().info("Received pos: " + str(angle.data))
-        self.reset_overload()
+        self.reset_overload() #Novy pohyb == reset kontroly nadproudu
         self.set_angle = angle.data
         self.move_servo(angle.data)
 
     def move_servo(self, angle):
         self.get_logger().info('Moving gripper....')
         
+        #Kontrola prekroceni krajnich hodnot
         if angle > OPEN_ANGLE:
             angle = OPEN_ANGLE
         elif angle < CLOSED_ANGLE:
