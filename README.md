@@ -53,9 +53,11 @@ Topicy - Publishery:
 Zde je definice GripperMove actionu
 
 ## Ostatní
-servo - python skript pro prvotní vyzkoušení knihovny ovládání serva
-adc - to samé, ale pro adc
+Python skripty ve kterých se zkoušely knihovny před integrací do ROSu
 
+servo - prvotní vyzkoušení knihovny ovládání serva
+
+adc - to samé, ale pro adc
 ## Do budoucna 
 
 * ADC: Zdá se že je možné, aby k jednomu i2c rozhraní přistupovalo více procesů, takže je adc_readout noda zbytečná a všechna funkcionalita by měla jít vložit do control_node gripperu.
