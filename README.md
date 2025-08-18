@@ -17,7 +17,8 @@ ADC:
 Vše by mělo jít nainstalovat přes pip3. Pro pigpio možná bude potřebovat dočasně přidat raspbian repozitář: 
 
 ## ros_ws
-ROS workspace, má 2 nody a definici actionu:
+ROS workspace, má 2 nody a definici actionu
+
 ### gripper_servo_controller - control_node
 Ovládání serva
 Topicy:
@@ -41,6 +42,7 @@ Příkaz:
 > ls /dev/ | grep i2c' vypíše i2c rozhraní
 
 Asi budou dvě, i2c-0 - výchozí rozhraní na HW pinech, i2c-X - SW rozhraní, číslo rozhraní X zadat do adc_readout
+
 Při spuštění kalibruje proudové čidlo a úhel z potenciometru (zasílá actiony do gripper_controlleru)
 
 Topicy - Publishery:
