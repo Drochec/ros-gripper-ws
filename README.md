@@ -11,6 +11,7 @@ Proudové čidlo:
 Servo:
 * pigpio
 * piServoCtl
+
 ADC:
 * ads1015
 Vše by mělo jít nainstalovat přes pip3. Pro pigpio možná bude potřebovat dočasně přidat raspbian repozitář: 
